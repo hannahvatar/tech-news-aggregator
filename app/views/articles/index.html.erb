@@ -1,19 +1,34 @@
+
 <h1>Tech News Aggregator</h1>
 
+
+
 <!-- Filter Form -->
-<%= form_with url: articles_path, method: :get, local: true do %>
-  <label for="start_date">Start Date:</label>
-  <%= date_field_tag :start_date, params[:start_date] %>
+<%= form_with url: articles_path, method: :get, local: true do |f| %>
+  <div style="margin-bottom: 20px;">
+    <div style="margin-bottom: 10px;">
+      <label for="start_date">Start Date:</label>
+      <%= date_field_tag :start_date, params[:start_date], class: "form-control" %>
+    </div>
 
-  <label for="end_date">End Date:</label>
-  <%= date_field_tag :end_date, params[:end_date] %>
+    <div style="margin-bottom: 10px;">
+      <label for="end_date">End Date:</label>
+      <%= date_field_tag :end_date, params[:end_date], class: "form-control" %>
+    </div>
 
-  <%= submit_tag "Filter", class: "btn btn-primary" %>
+    <%= submit_tag "Filter", class: "btn btn-primary" %>
+
+    <% if params[:start_date].present? || params[:end_date].present? %>
+      <%= link_to "Clear Filters", articles_path, class: "btn btn-secondary" %>
+    <% end %>
+  </div>
 <% end %>
 
 <hr>
 
 <% if @articles.any? %>
+  <p>Showing <%= @articles.count %> articles</p>
+
   <% @articles.each do |article| %>
     <div class="article">
       <h2>
@@ -43,5 +58,6 @@
     <hr>
   <% end %>
 <% else %>
-  <p>No articles found.</p>
+  <p>No articles found for the selected date range.</p>
+  <p>Try adjusting your date filters or <%= link_to "view all articles", articles_path %>.</p>
 <% end %>
