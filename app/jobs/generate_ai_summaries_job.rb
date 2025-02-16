@@ -25,8 +25,9 @@ class GenerateAiSummariesJob < ApplicationJob
           next
         end
 
-        # Generate summary
-        summary_text = generate_summary(article)
+        # Generate summary using AiSummaryService
+        service = AiSummaryService.new(article)
+        summary_text = service.generate_summary
 
         # Create AI Summary
         AiSummary.create!(
@@ -46,12 +47,5 @@ class GenerateAiSummariesJob < ApplicationJob
     Rails.logger.error "Overall error in AI summary generation"
     Rails.logger.error "Error: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
-  end
-
-  private
-
-  def generate_summary(article)
-    # Dummy implementation for testing
-    "Summary of: #{article.title}"
   end
 end

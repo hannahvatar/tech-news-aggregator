@@ -1,51 +1,85 @@
-# app/jobs/generate_ai_summaries_job.rb
-class GenerateAiSummariesJob < ApplicationJob
-  queue_as :default
+# app/services/ai_summary_service.rb
+class AiSummaryService
+  def initialize(article)
+    @article = article
+    Rails.logger.info "=== AiSummaryService Debug ==="
+    Rails.logger.info "Article ID: #{article.id}"
+    Rails.logger.info "Article Title: #{article.title}"
 
-  def perform(timeframe = 1.week.ago)
-    # Log the start of the job
-    Rails.logger.info "Starting AI summary generation for articles since #{timeframe}"
+    begin
+      api_key = Rails.application.credentials.dig(:openai, :api_key)
+      Rails.logger.info "OpenAI API Key present?: #{!api_key.nil?}"
+      Rails.logger.info "OpenAI API Key length: #{api_key&.length}"
 
-    # Find articles without AI summaries
-    articles = Article.where('published_at >= ?', timeframe)
-                      .left_joins(:ai_summary)
-                      .where(ai_summaries: { id: nil })
-
-    Rails.logger.info "Found #{articles.count} articles without summaries"
-
-    # Process each article
-    articles.find_each do |article|
-      begin
-        # Log article details
-        Rails.logger.info "Processing article ID: #{article.id}"
-        Rails.logger.info "Article title: #{article.title}"
-
-        # Skip if content is blank
-        if article.content.blank?
-          Rails.logger.warn "Skipping article #{article.id} - no content"
-          next
-        end
-
-        # Generate summary
-        summary_text = AiSummaryService.new(article).generate_summary
-
-        # Create AI Summary
-        AiSummary.create!(
-          article: article,
-          content: summary_text,
-          generated_at: Time.current
-        )
-
-        Rails.logger.info "Generated summary for article #{article.id}"
-      rescue StandardError => e
-        Rails.logger.error "Failed to generate summary for article #{article.id}"
-        Rails.logger.error "Error: #{e.message}"
-        Rails.logger.error e.backtrace.join("\n")
-      end
+      @client = OpenAI::Client.new(
+        access_token: api_key,
+        request_timeout: 30
+      )
+      Rails.logger.info "OpenAI client initialized successfully"
+    rescue => e
+      Rails.logger.error "Error initializing OpenAI client: #{e.message}"
+      raise e
     end
-  rescue StandardError => e
-    Rails.logger.error "Overall error in AI summary generation"
-    Rails.logger.error "Error: #{e.message}"
-    Rails.logger.error e.backtrace.join("\n")
+  end
+
+  def generate_summary
+    Rails.logger.info "Generating summary for article #{@article.id}"
+    begin
+      content = prepare_content
+      Rails.logger.info "Prepared content length: #{content.length}"
+      Rails.logger.info "Content sample: #{content[0..200]}"
+
+      response = @client.chat(
+        parameters: {
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert content analyst. Create a concise summary without repeating the title."
+            },
+            {
+              role: "user",
+              content: "Create a 2-3 paragraph summary of this article: #{content}"
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 500
+        }
+      )
+
+      Rails.logger.info "OpenAI Response: #{response.inspect}"
+
+      if response["choices"] && response["choices"][0]["message"]["content"]
+        summary = response["choices"][0]["message"]["content"].strip
+        Rails.logger.info "Generated summary: #{summary}"
+        summary
+      else
+        Rails.logger.error "Invalid response format: #{response.inspect}"
+        "Error generating summary"
+      end
+    rescue => e
+      Rails.logger.error "Error in generate_summary: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      "Error: #{e.message}"
+    end
+  end
+
+  private
+
+  def prepare_content
+    return "" if @article.content.blank?
+
+    content = @article.content.to_s
+
+    # Remove HTML tags
+    content = ActionView::Base.full_sanitizer.sanitize(content)
+
+    # Clean up the text
+    content = content.strip
+               .gsub(/\s+/, ' ')
+               .gsub(/\[.*?\]/, '')
+               .gsub(/Read more at.*/, '')
+
+    content.truncate(4000, separator: ' ', omission: '...')
   end
 end

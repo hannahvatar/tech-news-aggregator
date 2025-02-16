@@ -54,6 +54,8 @@ gem 'faraday'
 # Add to Gemfile
 gem 'feedjira'
 gem 'httparty'
+gem 'nokogiri'
+gem 'ruby-openai'
 
 group :development, :test do
   gem "dotenv-rails"
