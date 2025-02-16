@@ -1,11 +1,15 @@
-require 'httparty'
-require 'feedjira'
-
 class FeedFetcherService
   def self.fetch_all
     Feed.find_each do |feed|
-      new(feed).fetch
+      fetch_for_feed(feed)
     end
+  end
+
+  def self.fetch_for_feed(feed)
+    new(feed).fetch
+  rescue StandardError => e
+    Rails.logger.error("Complete error fetching feed #{feed.name}: #{e.message}")
+    Rails.logger.error(e.backtrace.join("\n"))
   end
 
   def initialize(feed)
