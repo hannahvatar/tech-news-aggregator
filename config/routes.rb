@@ -4,7 +4,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   # Update article routes to use resources
-  resources :articles, only: [:index, :show]
+  resources :articles, only: [:index]
 
   # Keep your current root route
   root to: "pages#home"
