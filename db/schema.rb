@@ -10,9 +10,54 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_02_16_153359) do
+ActiveRecord::Schema[7.1].define(version: 2025_02_16_162249) do
   # These are extensions that must be enabled in order to support this database
+  enable_extension "pgcrypto"
   enable_extension "plpgsql"
+
+  create_table "ai_summaries", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "article_tags", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "articles", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "feed_id", null: false
+    t.string "title"
+    t.string "url"
+    t.datetime "published_at"
+    t.text "content"
+    t.string "author"
+    t.string "guid"
+    t.index ["feed_id"], name: "index_articles_on_feed_id"
+    t.index ["guid"], name: "index_articles_on_guid", unique: true
+  end
+
+  create_table "feeds", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "name"
+    t.string "url"
+    t.string "feed_type"
+    t.datetime "last_fetched_at"
+    t.index ["url"], name: "index_feeds_on_url", unique: true
+  end
+
+  create_table "key_facts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "tags", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
@@ -26,4 +71,5 @@ ActiveRecord::Schema[7.1].define(version: 2025_02_16_153359) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "articles", "feeds"
 end

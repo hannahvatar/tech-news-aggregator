@@ -1,0 +1,26 @@
+<h1>Articles#show</h1>
+<p>Find me in app/views/articles/show.html.erb</p>
+
+<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
+  <nav class="mb-8">
+    <%= link_to "← Back to Articles", articles_path, class: "text-blue-600 hover:text-blue-800" %>
+  </nav>
+
+  <article>
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold mb-4"><%= @article.title %></h1>
+
+      <div class="text-gray-600 flex items-center gap-2">
+        <span><%= @article.feed.name %></span>
+        <span>•</span>
+        <span><%= time_ago_in_words(@article.published_at) %> ago</span>
+        <span>•</span>
+        <%= link_to "Original article", @article.url, target: "_blank", class: "text-blue-600 hover:text-blue-800" %>
+      </div>
+    </header>
+
+    <div class="prose prose-lg max-w-none">
+      <%= @article.content.html_safe %>
+    </div>
+  </article>
+</div>

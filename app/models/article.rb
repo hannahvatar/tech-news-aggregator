@@ -4,4 +4,9 @@ class Article < ApplicationRecord
   has_many :key_facts
   has_many :article_tags
   has_many :tags, through: :article_tags
+
+  validates :title, presence: true
+  validates :url, presence: true, uniqueness: true
+  validates :guid, presence: true, uniqueness: true
+  validates :published_at, presence: true
 end
