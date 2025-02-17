@@ -1,9 +1,8 @@
 # app/models/report.rb
 class Report < ApplicationRecord
-  # Add any necessary logic here (e.g., validations, associations)
+  validates :report_type, presence: true
+  validates :detail_level, presence: true
+  validates :data, presence: true
 
-  def self.fetch_report_data(report_type, detail_level)
-    data = where(report_type: report_type, detail_level: detail_level).to_a
-    data.presence || []
-  end
+  # Optional: Add any specific validations for your use case
 end

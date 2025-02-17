@@ -59,6 +59,8 @@ gem 'ruby-openai'
 gem 'prawn'
 gem 'prawn-table'
 gem 'chartkick'
+gem 'wicked_pdf'
+gem 'wkhtmltopdf-binary'
 
 group :development, :test do
   gem "dotenv-rails"

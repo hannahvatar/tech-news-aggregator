@@ -1,47 +1,22 @@
+# app/services/feed_fetcher_service.rb
 class FeedFetcherService
-  def self.fetch_all
-    Feed.find_each do |feed|
-      fetch_for_feed(feed)
-    end
+  def initialize
+    # Initialize any necessary API clients or configurations here
   end
 
-  def self.fetch_for_feed(feed)
-    new(feed).fetch
+  def fetch_articles(start_date:, end_date:)
+    Rails.logger.info "Fetching articles between #{start_date} and #{end_date}"
+
+    # Convert dates to proper format if they're strings
+    start_date = Date.parse(start_date) if start_date.is_a?(String)
+    end_date = Date.parse(end_date) if end_date.is_a?(String)
+
+    # Fetch articles from your database or API
+    Article.where(published_at: start_date.beginning_of_day..end_date.end_of_day)
+          .order(published_at: :desc)
   rescue StandardError => e
-    Rails.logger.error("Complete error fetching feed #{feed.name}: #{e.message}")
-    Rails.logger.error(e.backtrace.join("\n"))
-  end
-
-  def initialize(feed)
-    @feed = feed
-  end
-
-  def fetch
-    response = HTTParty.get(@feed.url)
-    return unless response.success?
-
-    parsed_feed = Feedjira.parse(response.body)
-    save_articles(parsed_feed.entries)
-    @feed.update(last_fetched_at: Time.current)
-  rescue StandardError => e
-    Rails.logger.error("Error fetching feed #{@feed.name}: #{e.message}")
-  end
-
-  private
-
-  def save_articles(entries)
-    entries.each do |entry|
-      article = @feed.articles.find_or_initialize_by(guid: entry.entry_id || entry.url)
-
-      article.assign_attributes(
-        title: entry.title,
-        url: entry.url,
-        content: entry.content || entry.summary,
-        author: entry.author,
-        published_at: entry.published || Time.current
-      )
-
-      article.save if article.changed?
-    end
+    Rails.logger.error "Error fetching articles: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+    []
   end
 end

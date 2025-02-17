@@ -1,0 +1,220 @@
+<!-- app/views/reports/download.pdf.erb -->
+<div class="container">
+  <div class="title">
+    <h1>Tech Insights Report</h1>
+  </div>
+
+  <div class="metadata">
+    <div class="metadata-grid">
+      <div class="metadata-item">
+        <div class="metadata-label">Date Range</div>
+        <div class="metadata-value"><%= @metadata[:date_range] || 'N/A' %></div>
+      </div>
+
+      <div class="metadata-item">
+        <div class="metadata-label">Articles Analyzed</div>
+        <div class="metadata-value"><%= @metadata[:article_count] || 'N/A' %></div>
+      </div>
+
+      <div class="metadata-item">
+        <div class="metadata-label">Report Type</div>
+        <div class="metadata-value"><%= @metadata[:report_type]&.titleize || 'N/A' %></div>
+      </div>
+
+      <div class="metadata-item">
+        <div class="metadata-label">Detail Level</div>
+        <div class="metadata-value"><%= @metadata[:detail_level]&.titleize || 'N/A' %></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <% if @report_data[:executive_summary].present? %>
+      <div class="section">
+        <h2>Executive Summary</h2>
+        <p><%= @report_data[:executive_summary] %></p>
+      </div>
+    <% end %>
+
+    <% if @report_data[:key_trends].present? %>
+      <div class="section">
+        <h2>Key Trends</h2>
+        <% @report_data[:key_trends].each do |trend| %>
+          <div class="trend-item">
+            <h3><%= trend[:title] %></h3>
+            <p><%= trend[:description] %></p>
+
+            <% if trend[:data].present? %>
+              <div class="trend-data">
+                <h4>Supporting Data:</h4>
+                <ul>
+                  <% trend[:data].each do |key, value| %>
+                    <li>
+                      <strong><%= key.to_s.titleize %>:</strong>
+                      <%= value.is_a?(Array) ? value.join(", ") : value %>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if @report_data[:detailed_analysis].present? %>
+      <div class="section">
+        <h2>Detailed Analysis</h2>
+        <% @report_data[:detailed_analysis].each do |analysis| %>
+          <div class="analysis-item">
+            <h3><%= analysis[:topic] %></h3>
+            <p><%= analysis[:content] %></p>
+
+            <% if analysis[:supporting_data].present? %>
+              <table>
+                <thead>
+                  <tr>
+                    <% analysis[:supporting_data][:headers].each do |header| %>
+                      <th><%= header %></th>
+                    <% end %>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% analysis[:supporting_data][:rows].each do |row| %>
+                    <tr>
+                      <% row.each do |cell| %>
+                        <td><%= cell %></td>
+                      <% end %>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if @report_data[:recommendations].present? %>
+      <div class="section">
+        <h2>Recommendations</h2>
+        <% @report_data[:recommendations].each do |recommendation| %>
+          <div class="recommendation-item">
+            <h3><%= recommendation[:title] %></h3>
+            <div class="recommendation-details">
+              <p><strong>Impact Level:</strong> <%= recommendation[:impact_level] %></p>
+              <p><strong>Timeline:</strong> <%= recommendation[:timeline] %></p>
+            </div>
+            <p><%= recommendation[:description] %></p>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<style>
+  .container {
+    font-family: 'Helvetica', sans-serif;
+    padding: 20px;
+    line-height: 1.6;
+  }
+
+  .title h1 {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #1a202c;
+    text-align: center;
+  }
+
+  .metadata {
+    background-color: #f7fafc;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 30px;
+  }
+
+  .metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+
+  .metadata-item {
+    margin-bottom: 10px;
+  }
+
+  .metadata-label {
+    color: #4a5568;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .metadata-value {
+    font-weight: bold;
+    color: #2d3748;
+  }
+
+  .section {
+    margin-bottom: 30px;
+  }
+
+  .section h2 {
+    font-size: 20px;
+    color: #2d3748;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 8px;
+  }
+
+  .trend-item, .analysis-item, .recommendation-item {
+    background-color: #f7fafc;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+
+  .trend-item h3, .analysis-item h3, .recommendation-item h3 {
+    font-size: 18px;
+    color: #2d3748;
+    margin-bottom: 10px;
+  }
+
+  .trend-data {
+    margin-top: 10px;
+  }
+
+  .trend-data h4 {
+    font-size: 16px;
+    color: #4a5568;
+    margin-bottom: 8px;
+  }
+
+  .trend-data ul {
+    list-style-type: disc;
+    margin-left: 20px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+  }
+
+  th, td {
+    border: 1px solid #e2e8f0;
+    padding: 8px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f7fafc;
+    font-weight: bold;
+  }
+
+  .recommendation-details {
+    margin: 10px 0;
+    color: #4a5568;
+  }
+</style>
