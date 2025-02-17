@@ -56,6 +56,9 @@ gem 'feedjira'
 gem 'httparty'
 gem 'nokogiri'
 gem 'ruby-openai'
+gem 'prawn'
+gem 'prawn-table'
+gem 'chartkick'
 
 group :development, :test do
   gem "dotenv-rails"
