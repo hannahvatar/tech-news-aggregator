@@ -24,6 +24,8 @@ class ReportsController < ApplicationController
       @report = Report.create!(
         report_type: report_params[:report_type],
         detail_level: report_params[:detail_level],
+        start_date: report_params[:start_date],
+        end_date: report_params[:end_date],
         data: result.to_json # Ensure the data is stored as a JSON string
       )
 
@@ -43,31 +45,53 @@ class ReportsController < ApplicationController
   end
 
   def show
-    # Find the report and log any errors
     @report = Report.find_by(id: params[:id])
 
     if @report.nil?
       flash[:error] = 'Report not found'
-      Rails.logger.error "Report with ID #{params[:id]} not found"
       redirect_to new_report_path
       return
     end
 
-    # Parse the JSON data into a Hash; if parsing fails, default to an empty hash
-    parsed_data = JSON.parse(@report.data, symbolize_names: true) rescue {}
+    begin
+      # Parse the entire data structure
+      parsed_data = JSON.parse(@report.data, symbolize_names: true)
 
-    # Safely extract report data and log if it's missing
-    @report_data = parsed_data.dig(:data) || {}
-    @metadata = parsed_data.dig(:metadata) || {}
+      # Debugging log
+      Rails.logger.debug "Parsed Data Structure: #{parsed_data.keys}"
 
-    if @report_data.empty? || @metadata.empty?
+      # Extract data with more robust parsing
+      if parsed_data[:success] && parsed_data[:data]
+        @report_data = parsed_data[:data]
+        @metadata = parsed_data[:metadata] || {}
+      else
+        @report_data = parsed_data
+        @metadata = {}
+      end
+
+      # Additional debugging logs
+      Rails.logger.debug "Report Data Keys: #{@report_data.keys}"
+      Rails.logger.debug "Metadata Keys: #{@metadata.keys}"
+
+    rescue JSON::ParserError => e
+      Rails.logger.error "JSON parsing error: #{e.message}"
+      flash[:error] = 'Failed to parse report data'
+      redirect_to new_report_path
+      return
+    rescue StandardError => e
+      Rails.logger.error "Unexpected error in show action: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      flash[:error] = 'An unexpected error occurred while loading the report'
+      redirect_to new_report_path
+      return
+    end
+
+    # Check for empty or invalid data
+    if @report_data.blank?
       flash[:error] = 'Report data is incomplete'
-      Rails.logger.warn "Report data or metadata missing for Report ID #{@report.id}"
       redirect_to new_report_path
       return
     end
-
-    Rails.logger.info "Viewing report #{@report.id}"
   end
 
   private
