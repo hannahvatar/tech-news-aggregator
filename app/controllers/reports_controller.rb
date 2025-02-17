@@ -6,27 +6,42 @@ class ReportsController < ApplicationController
   end
 
   def generate
-    # Log the incoming parameters for debugging
-    Rails.logger.info "Generating report with params: #{report_params.inspect}"
+    # Extensive logging for debugging
+    Rails.logger.debug "Starting report generation"
+    Rails.logger.debug "Raw params: #{params.inspect}"
 
-    # Pass the parameters as a hash with indifferent access
-    result = ReportGenerationService.new(report_params.to_h.with_indifferent_access).generate
-
-    # Handle generation errors
-    if result[:success] == false
-      flash.now[:error] = result[:error] || 'Failed to generate report'
-      Rails.logger.error "Report generation failed: #{result[:error]}"
-      render :new and return
-    end
-
-    # Create the report record
     begin
+      # Prepare parameters with more robust conversion
+      prepared_params = {
+        start_date: params[:start_date],
+        end_date: params[:end_date],
+        report_type: params[:report_type],
+        detail_level: params[:detail_level],
+        include_visualizations: params[:include_visualizations] == '1'
+      }
+
+      Rails.logger.debug "Prepared params: #{prepared_params.inspect}"
+
+      # Use prepared params instead of report_params
+      result = ReportGenerationService.new(prepared_params.with_indifferent_access).generate
+
+      # Log the result of report generation
+      Rails.logger.debug "Report generation result: #{result.inspect}"
+
+      # Handle generation errors
+      unless result[:success]
+        flash.now[:error] = result[:error] || 'Failed to generate report'
+        Rails.logger.error "Report generation failed: #{result[:error]}"
+        return render :new
+      end
+
+      # Create the report record
       @report = Report.create!(
-        report_type: report_params[:report_type],
-        detail_level: report_params[:detail_level],
-        start_date: report_params[:start_date],
-        end_date: report_params[:end_date],
-        data: result.to_json # Ensure the data is stored as a JSON string
+        report_type: prepared_params[:report_type],
+        detail_level: prepared_params[:detail_level],
+        start_date: prepared_params[:start_date],
+        end_date: prepared_params[:end_date],
+        data: result.to_json
       )
 
       # Log successful report creation
@@ -38,15 +53,25 @@ class ReportsController < ApplicationController
 
     rescue ActiveRecord::RecordInvalid => e
       # Handle database validation errors
-      flash.now[:error] = "Could not save report: #{e.message}"
       Rails.logger.error "Report creation failed: #{e.message}"
+      flash.now[:error] = "Could not save report: #{e.message}"
+      render :new
+
+    rescue StandardError => e
+      # Catch and log any unexpected errors
+      Rails.logger.error "Unexpected error in report generation: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+
+      flash.now[:error] = "An unexpected error occurred: #{e.message}"
       render :new
     end
   end
 
   def show
+    # Find the report
     @report = Report.find_by(id: params[:id])
 
+    # Handle report not found
     if @report.nil?
       flash[:error] = 'Report not found'
       redirect_to new_report_path
@@ -54,31 +79,41 @@ class ReportsController < ApplicationController
     end
 
     begin
-      # Parse the entire data structure
+      # Log the raw data for debugging
+      Rails.logger.debug "Raw report data: #{@report.data}"
+
+      # Parse the JSON data
       parsed_data = JSON.parse(@report.data, symbolize_names: true)
+      Rails.logger.debug "Parsed data: #{parsed_data.inspect}"
 
-      # Debugging log
-      Rails.logger.debug "Parsed Data Structure: #{parsed_data.keys}"
-
-      # Extract data with more robust parsing
-      if parsed_data[:success] && parsed_data[:data]
-        @report_data = parsed_data[:data]
+      # Extract report data and metadata
+      if parsed_data[:success]
+        @report_data = parsed_data[:data] || {}
         @metadata = parsed_data[:metadata] || {}
       else
+        # Fallback for unexpected data structure
         @report_data = parsed_data
-        @metadata = {}
+        @metadata = {
+          article_count: 0,
+          date_range: 'Unknown',
+          report_type: @report.report_type,
+          detail_level: @report.detail_level
+        }
       end
 
-      # Additional debugging logs
+      # Additional logging for debugging
       Rails.logger.debug "Report Data Keys: #{@report_data.keys}"
       Rails.logger.debug "Metadata Keys: #{@metadata.keys}"
 
     rescue JSON::ParserError => e
+      # Handle JSON parsing errors
       Rails.logger.error "JSON parsing error: #{e.message}"
       flash[:error] = 'Failed to parse report data'
       redirect_to new_report_path
       return
+
     rescue StandardError => e
+      # Catch any unexpected errors
       Rails.logger.error "Unexpected error in show action: #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
       flash[:error] = 'An unexpected error occurred while loading the report'
@@ -86,25 +121,39 @@ class ReportsController < ApplicationController
       return
     end
 
-    # Check for empty or invalid data
+    # Final check for empty data
     if @report_data.blank?
       flash[:error] = 'Report data is incomplete'
       redirect_to new_report_path
-      return
     end
   end
 
   private
 
   def validate_report_params
+    Rails.logger.debug "Validating report params: #{params.inspect}"
+
     required_params = [:start_date, :end_date, :report_type, :detail_level]
 
-    required_params.each do |param|
-      if report_params[param].blank?
-        flash.now[:error] = "#{param.to_s.humanize} is required"
-        render :new and break
-      end
+    missing_params = required_params.select { |param| params[param].blank? }
+
+    if missing_params.any?
+      error_message = "The following parameters are required: #{missing_params.map(&:to_s).join(', ')}"
+      Rails.logger.error error_message
+      flash.now[:error] = error_message
+      render :new and return false
     end
+
+    # Additional parameter validation
+    begin
+      Date.parse(params[:start_date])
+      Date.parse(params[:end_date])
+    rescue ArgumentError
+      flash.now[:error] = "Invalid date format. Please use YYYY-MM-DD."
+      render :new and return false
+    end
+
+    true
   end
 
   def report_params
@@ -114,6 +163,6 @@ class ReportsController < ApplicationController
       :report_type,
       :detail_level,
       :include_visualizations
-    ).transform_keys { |key| key.to_sym }
+    )
   end
 end
