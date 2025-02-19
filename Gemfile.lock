@@ -282,6 +282,7 @@ GEM
     rake (13.2.1)
     rdoc (6.12.0)
       psych (>= 4.0.0)
+    redcarpet (3.6.0)
     regexp_parser (2.10.0)
     reline (0.6.0)
       io-console (~> 0.5)
@@ -384,6 +385,7 @@ DEPENDENCIES
   prawn-table
   puma (>= 5.0)
   rails (~> 7.1.5, >= 7.1.5.1)
+  redcarpet
   ruby-openai
   sassc-rails
   selenium-webdriver

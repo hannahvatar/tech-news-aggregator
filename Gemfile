@@ -61,6 +61,7 @@ gem 'prawn-table'
 gem 'chartkick'
 gem 'wicked_pdf'
 gem 'wkhtmltopdf-binary'
+gem 'redcarpet'
 
 group :development, :test do
   gem "dotenv-rails"

@@ -175,6 +175,6 @@ class ReportGenerationService
       }
     ]
 
-    recommendations
+    recommendation
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_02_17_172728) do
+ActiveRecord::Schema[7.1].define(version: 2025_02_19_161212) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -65,13 +65,11 @@ ActiveRecord::Schema[7.1].define(version: 2025_02_17_172728) do
   end
 
   create_table "reports", force: :cascade do |t|
-    t.string "report_type"
-    t.string "detail_level"
-    t.text "data"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.date "start_date"
     t.date "end_date"
+    t.jsonb "data", default: {}
   end
 
   create_table "tags", force: :cascade do |t|

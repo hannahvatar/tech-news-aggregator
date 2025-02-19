@@ -1,0 +1,5 @@
+class ChangeDataTypeForReportsData < ActiveRecord::Migration[7.1]
+  def change
+    change_column :reports, :data, :jsonb, using: 'data::jsonb'
+  end
+end
