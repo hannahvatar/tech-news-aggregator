@@ -1,8 +1,7 @@
 class AiSummary < ApplicationRecord
-  belongs_to :scraped_article  # Update this line to match the correct association
+  belongs_to :summarizable, polymorphic: true  # Polymorphic association
 
   # Validations
-  validates :scraped_article_id, presence: true, uniqueness: true
   validates :content, presence: true, length: { minimum: 10 }
 
   # Optional: Add some callbacks for logging
@@ -12,10 +11,10 @@ class AiSummary < ApplicationRecord
   private
 
   def log_summary_creation
-    Rails.logger.info "AiSummary created for ScrapedArticle ID: #{scraped_article_id}"
+    Rails.logger.info "AiSummary created for #{summarizable_type} ID: #{summarizable_id}"
   end
 
   def log_initialization
-    Rails.logger.info "AiSummary initialized for ScrapedArticle ID: #{scraped_article_id}"
+    Rails.logger.info "AiSummary initialized for #{summarizable_type} ID: #{summarizable_id}"
   end
 end

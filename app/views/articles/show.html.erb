@@ -1,38 +1,20 @@
-<div class="article-details">
-  <h1><%= @article.title %></h1>
+<h1><%= @article.title %></h1>
 
-  <div class="article-meta">
-    <% if @article.is_a?(ScrapedArticle) %>
-      <span>Source: <%= @article.scraped_feed.name %></span>
-      <%= link_to "Original Article", @article.url, target: "_blank", class: "btn" %>
-    <% else %>
-      <span>Source: <%= @article.feed.name %></span>
-    <% end %>
-    <span>Published: <%= @article.published_at.strftime("%B %d, %Y") %></span>
-  </div>
-
-  <!-- Debugging Logs - for Development Only -->
-  <% if Rails.env.development? %>
-    <div class="debug-info">
-      <p><strong>Article ID:</strong> <%= @article.id %></p>
-      <p><strong>Article Type:</strong> <%= @article.class %></p>
-      <p><strong>AI Summary Object:</strong> <%= @article.ai_summary.inspect %></p>
-      <p><strong>AI Summary Content:</strong> <%= @article.ai_summary&.content || "No AI Summary found" %></p>
-    </div>
+<p>Source:
+  <% if @article.is_a?(ScrapedArticle) && @article.scraped_feed.present? %>
+    <%= @article.scraped_feed.name %>
+  <% elsif @article.feed.present? %>
+    <%= @article.feed.name %>
+  <% else %>
+    Unknown Source
   <% end %>
+</p>
 
-  <div class="article-content">
-    <h2>Raw AI Summary Debug:</h2>
-    <pre><%= @article.ai_summary&.content || "No AI Summary found" %></pre>
+<p>Published: <%= @article.published_at.strftime("%B %d, %Y") %></p>
 
-    <!-- AI Summary Section -->
-    <% if @article.is_a?(Article) && @article.ai_summary.present? %>
-      <h2>AI Summary</h2>
-      <div class="ai-summary">
-        <%= simple_format(@article.ai_summary.content) %>
-      </div>
-    <% else %>
-      <p>No AI Summary available</p>
-    <% end %>
-  </div>
-</div>
+<% if @article.is_a?(Article) && @article.ai_summary.present? %>
+  <h3>AI Summary</h3>
+  <p><%= simple_format(@article.ai_summary.content) %></p>
+<% else %>
+  <p>No AI Summary available</p>
+<% end %>

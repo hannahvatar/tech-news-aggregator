@@ -15,6 +15,14 @@
   </div>
 <% end %>
 
+<!-- Display Total Articles -->
+<% if @combined_articles.any? %>
+  <p><strong>Total Articles:</strong> <%= @total_articles_count %></p>
+<% else %>
+  <p>No articles found for the selected date range.</p>
+<% end %>
+
+<!-- Display Articles with AI Summary -->
 <% @combined_articles.each do |article| %>
   <div class="article-preview">
     <h2><%= link_to article.title, article_path(article) %></h2>
@@ -27,13 +35,10 @@
     </p>
     <p>Published: <%= article.published_at.strftime("%B %d, %Y") %></p>
 
-    <!-- AI Summary Section -->
-    <% if article.is_a?(Article) && article.ai_summary.present? %>
+    <!-- Display AI Summary if available -->
+    <% if article.ai_summary.present? %>
       <h3>AI Summary</h3>
       <p><%= simple_format(article.ai_summary.content) %></p>
-    <% elsif article.is_a?(ScrapedArticle) && article.article&.ai_summary.present? %>
-      <h3>AI Summary</h3>
-      <p><%= simple_format(article.article.ai_summary.content) %></p>
     <% else %>
       <p>No AI Summary available</p>
     <% end %>
