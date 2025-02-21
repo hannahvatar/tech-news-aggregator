@@ -65,6 +65,9 @@ gem 'redcarpet'
 gem 'mechanize'
 gem 'whenever'
 gem 'kaminari'
+gem 'sidekiq'
+# Gemfile
+gem 'rss'
 
 group :development, :test do
   gem "dotenv-rails"
@@ -88,5 +91,3 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
-
-gem "sidekiq", "~> 7.3"

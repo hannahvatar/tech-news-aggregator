@@ -1,52 +1,107 @@
-<h1>Articles</h1>
+<div class="articles-container">
+  <h1>Articles</h1>
 
-<!-- Date Range Filter Form -->
-<%= form_tag(articles_path, method: :get, class: "date-filter-form") do %>
-  <div>
-    <label for="start_date">Start Date:</label>
-    <%= date_field_tag :start_date, params[:start_date], class: "date-input" %>
-  </div>
-  <div>
-    <label for="end_date">End Date:</label>
-    <%= date_field_tag :end_date, params[:end_date], class: "date-input" %>
-  </div>
-  <div>
-    <%= submit_tag "Filter", class: "filter-button" %>
-  </div>
-<% end %>
+  <%= form_tag(articles_path, method: :get, class: "date-filter-form") do %>
+    <div class="filter-inputs">
+      <div class="date-input-group">
+        <label for="start_date">Start Date:</label>
+        <%= date_field_tag :start_date, params[:start_date], class: "date-input" %>
+      </div>
 
-<!-- Display Total Articles -->
-<% if @combined_articles.present? %>
-  <p>
-    <strong>Total Articles:</strong>
-    <%= @combined_articles.total_count %>
-  </p>
+      <div class="date-input-group">
+        <label for="end_date">End Date:</label>
+        <%= date_field_tag :end_date, params[:end_date], class: "date-input" %>
+      </div>
 
-  <!-- Display Articles -->
-  <% @combined_articles.each do |article| %>
-    <div class="article-preview">
-      <h2><%= link_to article.title, article_path(article) %></h2>
-
-      <p>Source: <%= article.source_name %></p>
-
-      <p>Published: <%= article.published_at&.strftime("%B %d, %Y") || "No date" %></p>
-
-      <!-- Polymorphic AI Summary Display -->
-      <% if article.respond_to?(:ai_summary) && article.ai_summary.present? %>
-        <div class="ai-summary">
-          <h3>AI Summary</h3>
-          <%= simple_format(article.ai_summary.content) %>
-        </div>
-      <% else %>
-        <p>No AI Summary available</p>
-      <% end %>
-
-      <hr>
+      <div class="filter-actions">
+        <%= submit_tag "Filter", class: "filter-button btn btn-primary" %>
+        <%= link_to "Reset", articles_path, class: "reset-button btn btn-secondary" %>
+      </div>
     </div>
   <% end %>
 
-  <%= paginate @combined_articles %>
+  <% if @combined_articles.present? %>
+    <div class="articles-summary">
+      <p>
+        <strong>Total Articles:</strong>
+        <%= @combined_articles.total_count %>
+        <span class="date-range">
+          (from <%= params[:start_date].present? ? params[:start_date] : "beginning" %>
+           to <%= params[:end_date].present? ? params[:end_date] : "now" %>)
+        </span>
+      </p>
+    </div>
 
-<% else %>
-  <p>No articles found. Try adjusting your filter or check your data sources.</p>
+    <div class="articles-list">
+      <% @combined_articles.each do |article| %>
+        <div class="article-preview card mb-3">
+          <div class="card-body">
+            <h2 class="card-title">
+              <%= link_to article.title, article_path(article), class: "article-title" %>
+            </h2>
+
+            <div class="article-metadata">
+              <span class="article-source badge bg-secondary">
+                <%= article.source_name %>
+              </span>
+
+              <span class="article-date">
+                Published: <%= article.published_at&.strftime("%B %d, %Y at %I:%M %p") || "No date" %>
+              </span>
+            </div>
+
+            <% if article.respond_to?(:ai_summary) && article.ai_summary.present? %>
+              <div class="ai-summary mt-3">
+                <h3 class="h5">AI Summary</h3>
+                <%= simple_format(truncate(article.ai_summary.content, length: 250)) %>
+              </div>
+            <% end %>
+
+            <% if article.respond_to?(:key_facts) && article.key_facts.any? %>
+              <div class="key-facts mt-2">
+                <h4 class="h6">Key Facts:</h4>
+                <ul>
+                  <% article.key_facts.each do |fact| %>
+                    <li><%= fact.content %></li>
+                  <% end %>
+                </ul>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="pagination-container">
+      <%= paginate @combined_articles %>
+    </div>
+
+  <% else %>
+    <div class="no-articles-alert alert alert-info">
+      <p>No articles found. Try adjusting your filter or check your data sources.</p>
+    </div>
+  <% end %>
+</div>
+
+<% content_for :page_scripts do %>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Optional: Add some client-side date range validation
+      const startDate = document.getElementById('start_date');
+      const endDate = document.getElementById('end_date');
+
+      if (startDate && endDate) {
+        endDate.min = startDate.value;
+        startDate.max = endDate.value;
+
+        startDate.addEventListener('change', function() {
+          endDate.min = this.value;
+        });
+
+        endDate.addEventListener('change', function() {
+          startDate.max = this.value;
+        });
+      }
+    });
+  </script>
 <% end %>

@@ -1,0 +1,13 @@
+<div style="background: #f5f5f5; padding: 10px; margin: 10px; border: 1px solid #ddd;">
+  <h3>Feed Debug Info:</h3>
+  <ul>
+    <li>Article ID: <%= @article.id %></li>
+    <li>Article Feed ID: <%= @article.feed_id %></li>
+    <li>Feed Present?: <%= @article.feed.present? %></li>
+    <% if @article.feed.present? %>
+      <li>Feed ID: <%= @article.feed.id %></li>
+      <li>Feed Name: <%= @article.feed.name.inspect %></li>
+      <li>Feed URL: <%= @article.feed.url %></li>
+    <% end %>
+  </ul>
+</div>

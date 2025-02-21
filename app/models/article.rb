@@ -11,23 +11,12 @@ class Article < ApplicationRecord
   validates :guid, presence: true, uniqueness: true
   validates :published_at, presence: true
 
-  # Compatibility method for combined view
   def source_name
-    feed.name
-  end
-end
+    Rails.logger.debug "Checking source_name for article #{id}"
+    Rails.logger.debug "Feed ID: #{feed_id}"
+    Rails.logger.debug "Feed present?: #{feed.present?}"
+    Rails.logger.debug "Feed name: #{feed&.name}"
 
-# app/models/scraped_article.rb
-class ScrapedArticle < ApplicationRecord
-  belongs_to :scraped_feed
-  has_one :ai_summary, dependent: :destroy
-
-  validates :title, presence: true
-  validates :url, presence: true, uniqueness: true
-  validates :published_at, presence: true
-
-  # Compatibility method for combined view
-  def source_name
-    scraped_feed.name
+    feed&.name.presence || "No feed name"
   end
 end

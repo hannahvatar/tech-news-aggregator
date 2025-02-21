@@ -1,20 +1,57 @@
-<h1><%= @article.title %></h1>
+<!-- app/views/articles/show.html.erb -->
+<div class="article-show-container">
+  <!-- Debug info section -->
+  <div style="background: #f5f5f5; padding: 10px; margin: 10px; border: 1px solid #ddd;">
+    <h3>Feed Debug Info:</h3>
+    <ul>
+      <li>Article ID: <%= @article.id %></li>
+      <li>Article Feed ID: <%= @article.feed_id %></li>
+      <li>Feed Present?: <%= @article.feed.present? %></li>
+      <% if @article.feed.present? %>
+        <li>Feed ID: <%= @article.feed.id %></li>
+        <li>Feed Name: <%= @article.feed.name.inspect %></li>
+        <li>Feed URL: <%= @article.feed.url %></li>
+      <% end %>
+    </ul>
+  </div>
 
-<p>Source:
-  <% if @article.is_a?(ScrapedArticle) && @article.scraped_feed.present? %>
-    <%= @article.scraped_feed.name %>
-  <% elsif @article.feed.present? %>
-    <%= @article.feed.name %>
+  <h1><%= @article.title %></h1>
+
+  <div class="article-metadata">
+    <p>
+      Source: <%= @article.feed&.name || "No source available" %>
+    </p>
+    <p>Published: <%= @article.published_at&.strftime("%B %d, %Y at %I:%M %p") %></p>
+  </div>
+
+  <% if @article.respond_to?(:ai_summary) && @article.ai_summary.present? %>
+    <div class="ai-summary">
+      <h3>AI Summary</h3>
+      <p><%= simple_format(@article.ai_summary.content) %></p>
+    </div>
   <% else %>
-    Unknown Source
+    <p>No AI Summary available</p>
   <% end %>
-</p>
 
-<p>Published: <%= @article.published_at.strftime("%B %d, %Y") %></p>
+  <% if @article.respond_to?(:content) && @article.content.present? %>
+    <div class="article-content">
+      <h3>Full Content</h3>
+      <%= simple_format(@article.content) %>
+    </div>
+  <% end %>
 
-<% if @article.is_a?(Article) && @article.ai_summary.present? %>
-  <h3>AI Summary</h3>
-  <p><%= simple_format(@article.ai_summary.content) %></p>
-<% else %>
-  <p>No AI Summary available</p>
-<% end %>
+  <% if @article.respond_to?(:key_facts) && @article.key_facts.present? %>
+    <div class="key-facts">
+      <h3>Key Facts</h3>
+      <ul>
+        <% @article.key_facts.each do |fact| %>
+          <li><%= fact.content %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="navigation">
+    <%= link_to "Back to Articles", articles_path, class: "btn btn-secondary" %>
+  </div>
+</div>

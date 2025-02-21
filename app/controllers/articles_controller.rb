@@ -1,4 +1,5 @@
 class ArticlesController < ApplicationController
+  # GET /articles
   def index
     begin
       # Log start of method
@@ -32,10 +33,32 @@ class ArticlesController < ApplicationController
     end
   end
 
+  # GET /articles/:id
+ # app/controllers/articles_controller.rb
+# app/controllers/articles_controller.rb
+def show
+  @article = Article.includes(:feed, :ai_summary, :key_facts, :tags).find_by(id: params[:id]) ||
+             ScrapedArticle.includes(:scraped_feed, :ai_summary).find_by(id: params[:id])
+
+  if @article
+    Rails.logger.debug "Article found: #{@article.id}"
+    Rails.logger.debug "Article class: #{@article.class}"
+    Rails.logger.debug "Feed info: #{@article.feed.inspect}" if @article.respond_to?(:feed)
+  end
+end
+
   private
 
   def fetch_articles
+    # Default to a wide date range if no params are provided
+    start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : 1.year.ago
+    end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.today
+
+    # Ensure correct order of dates
+    start_date, end_date = end_date, start_date if start_date > end_date
+
     Article.includes(:feed, :ai_summary, :key_facts)
+           .where(published_at: start_date.beginning_of_day..end_date.end_of_day)
            .order(published_at: :desc)
   rescue => e
     Rails.logger.error "Error fetching articles: #{e.message}"
@@ -43,7 +66,15 @@ class ArticlesController < ApplicationController
   end
 
   def fetch_scraped_articles
+    # Default to a wide date range if no params are provided
+    start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : 1.year.ago
+    end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.today
+
+    # Ensure correct order of dates
+    start_date, end_date = end_date, start_date if start_date > end_date
+
     ScrapedArticle.includes(:scraped_feed, :ai_summary)
+                  .where(published_at: start_date.beginning_of_day..end_date.end_of_day)
                   .order(published_at: :desc)
   rescue => e
     Rails.logger.error "Error fetching scraped articles: #{e.message}"

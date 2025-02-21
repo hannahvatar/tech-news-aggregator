@@ -329,6 +329,8 @@ GEM
       actionpack (>= 5.2)
       railties (>= 5.2)
     rexml (3.4.1)
+    rss (0.3.1)
+      rexml
     ruby-openai (7.4.0)
       event_stream_parser (>= 0.3.0, < 2.0.0)
       faraday (>= 1)
@@ -439,10 +441,11 @@ DEPENDENCIES
   puma (>= 5.0)
   rails (~> 7.1.5, >= 7.1.5.1)
   redcarpet
+  rss
   ruby-openai
   sassc-rails
   selenium-webdriver
-  sidekiq (~> 7.3)
+  sidekiq
   simple_form!
   sprockets-rails
   stimulus-rails
