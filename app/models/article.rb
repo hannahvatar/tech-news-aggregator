@@ -5,21 +5,29 @@ class Article < ApplicationRecord
   has_many :key_facts, dependent: :destroy
   has_many :article_tags, dependent: :destroy
   has_many :tags, through: :article_tags
-  has_many :scraped_articles, dependent: :destroy  # Optional, depending on your relationship
 
   validates :title, presence: true
   validates :url, presence: true, uniqueness: true
   validates :guid, presence: true, uniqueness: true
   validates :published_at, presence: true
 
-  # Optional: add database indexes for speed and consistency
-  # add_index :articles, :url, unique: true
-  # add_index :articles, :guid, unique: true
+  # Compatibility method for combined view
+  def source_name
+    feed.name
+  end
 end
 
-# app/models/ai_summary.rb
-class AiSummary < ApplicationRecord
-  belongs_to :article
+# app/models/scraped_article.rb
+class ScrapedArticle < ApplicationRecord
+  belongs_to :scraped_feed
+  has_one :ai_summary, dependent: :destroy
 
-  validates :content, presence: true
+  validates :title, presence: true
+  validates :url, presence: true, uniqueness: true
+  validates :published_at, presence: true
+
+  # Compatibility method for combined view
+  def source_name
+    scraped_feed.name
+  end
 end
