@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_02_21_103423) do
+ActiveRecord::Schema[7.1].define(version: 2025_02_21_133007) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -21,7 +21,9 @@ ActiveRecord::Schema[7.1].define(version: 2025_02_21_103423) do
     t.datetime "generated_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "scraped_article_id"
     t.index ["article_id"], name: "index_ai_summaries_on_article_id"
+    t.index ["scraped_article_id"], name: "index_ai_summaries_on_scraped_article_id"
   end
 
   create_table "article_tags", force: :cascade do |t|
@@ -80,6 +82,9 @@ ActiveRecord::Schema[7.1].define(version: 2025_02_21_103423) do
     t.bigint "scraped_feed_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "summary"
+    t.bigint "article_id", null: false
+    t.index ["article_id"], name: "index_scraped_articles_on_article_id"
     t.index ["scraped_feed_id"], name: "index_scraped_articles_on_scraped_feed_id"
     t.index ["url"], name: "index_scraped_articles_on_url", unique: true
   end
@@ -111,8 +116,10 @@ ActiveRecord::Schema[7.1].define(version: 2025_02_21_103423) do
   end
 
   add_foreign_key "ai_summaries", "articles"
+  add_foreign_key "ai_summaries", "scraped_articles"
   add_foreign_key "article_tags", "articles"
   add_foreign_key "article_tags", "tags"
   add_foreign_key "articles", "feeds"
+  add_foreign_key "scraped_articles", "articles"
   add_foreign_key "scraped_articles", "scraped_feeds"
 end

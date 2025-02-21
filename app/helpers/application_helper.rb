@@ -21,4 +21,12 @@ module ApplicationHelper
 
     markdown.render(text).html_safe
   end
+
+  # app/helpers/application_helper.rb
+module ApplicationHelper
+  def extract_summary(content)
+    content.truncate(150, separator: ' ')
+  end
+end
+
 end

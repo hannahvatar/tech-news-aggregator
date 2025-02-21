@@ -1,26 +1,38 @@
-<h1>Articles#show</h1>
-<p>Find me in app/views/articles/show.html.erb</p>
+<div class="article-details">
+  <h1><%= @article.title %></h1>
 
-<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
-  <nav class="mb-8">
-    <%= link_to "← Back to Articles", articles_path, class: "text-blue-600 hover:text-blue-800" %>
-  </nav>
+  <div class="article-meta">
+    <% if @article.is_a?(ScrapedArticle) %>
+      <span>Source: <%= @article.scraped_feed.name %></span>
+      <%= link_to "Original Article", @article.url, target: "_blank", class: "btn" %>
+    <% else %>
+      <span>Source: <%= @article.feed.name %></span>
+    <% end %>
+    <span>Published: <%= @article.published_at.strftime("%B %d, %Y") %></span>
+  </div>
 
-  <article>
-    <header class="mb-8">
-      <h1 class="text-3xl font-bold mb-4"><%= @article.title %></h1>
-
-      <div class="text-gray-600 flex items-center gap-2">
-        <span><%= @article.feed.name %></span>
-        <span>•</span>
-        <span><%= time_ago_in_words(@article.published_at) %> ago</span>
-        <span>•</span>
-        <%= link_to "Original article", @article.url, target: "_blank", class: "text-blue-600 hover:text-blue-800" %>
-      </div>
-    </header>
-
-    <div class="prose prose-lg max-w-none">
-      <%= @article.content.html_safe %>
+  <!-- Debugging Logs - for Development Only -->
+  <% if Rails.env.development? %>
+    <div class="debug-info">
+      <p><strong>Article ID:</strong> <%= @article.id %></p>
+      <p><strong>Article Type:</strong> <%= @article.class %></p>
+      <p><strong>AI Summary Object:</strong> <%= @article.ai_summary.inspect %></p>
+      <p><strong>AI Summary Content:</strong> <%= @article.ai_summary&.content || "No AI Summary found" %></p>
     </div>
-  </article>
+  <% end %>
+
+  <div class="article-content">
+    <h2>Raw AI Summary Debug:</h2>
+    <pre><%= @article.ai_summary&.content || "No AI Summary found" %></pre>
+
+    <!-- AI Summary Section -->
+    <% if @article.is_a?(Article) && @article.ai_summary.present? %>
+      <h2>AI Summary</h2>
+      <div class="ai-summary">
+        <%= simple_format(@article.ai_summary.content) %>
+      </div>
+    <% else %>
+      <p>No AI Summary available</p>
+    <% end %>
+  </div>
 </div>

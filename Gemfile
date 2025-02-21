@@ -62,6 +62,9 @@ gem 'chartkick'
 gem 'wicked_pdf'
 gem 'wkhtmltopdf-binary'
 gem 'redcarpet'
+gem 'mechanize'
+gem 'whenever'
+gem 'kaminari'
 
 group :development, :test do
   gem "dotenv-rails"

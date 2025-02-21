@@ -3,8 +3,11 @@ Rails.application.routes.draw do
   # Existing health check route
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # Articles route
-  resources :articles, only: [:index]
+  # Articles route with both regular and scraped articles
+  resources :articles, only: [:index, :show] do
+    # Add a custom route for scraped articles
+    get 'scraped/:id', to: 'articles#show_scraped', on: :collection, as: :scraped
+  end
 
   # Scraped feeds and articles routes
   resources :scraped_feeds do

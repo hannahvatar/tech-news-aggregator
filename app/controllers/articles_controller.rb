@@ -6,7 +6,7 @@ class ArticlesController < ApplicationController
 
     # Prepare base queries with eager loading
     @articles = Article.includes(:feed, :ai_summary, :key_facts)
-    @scraped_articles = ScrapedArticle.includes(:scraped_feed)
+    @scraped_articles = ScrapedArticle.includes(:scraped_feed, :article) # Ensure :article is included
 
     # Filter by date if params exist
     if params[:start_date].present? && params[:end_date].present?
@@ -19,38 +19,42 @@ class ArticlesController < ApplicationController
       # Apply date filtering to both article types
       @articles = @articles.where(published_at: start_date..end_date)
       @scraped_articles = @scraped_articles.where(published_at: start_date..end_date)
-
-      # Log the SQL queries
-      Rails.logger.info "Articles SQL Query: #{@articles.to_sql}"
-      Rails.logger.info "Scraped Articles SQL Query: #{@scraped_articles.to_sql}"
     end
 
     # Order both article types by published date
     @articles = @articles.order(published_at: :desc)
     @scraped_articles = @scraped_articles.order(published_at: :desc)
 
-    # Debug logging for Articles
-    Rails.logger.info "Total articles found: #{@articles.count}"
-    Rails.logger.info "Date range of articles:"
-    Rails.logger.info "Earliest article: #{@articles.minimum(:published_at)}"
-    Rails.logger.info "Latest article: #{@articles.maximum(:published_at)}"
+    # Combine articles
+    @combined_articles = (@articles + @scraped_articles)
+      .sort_by(&:published_at)
+      .reverse
 
-    # Debug logging for Scraped Articles
-    Rails.logger.info "Total scraped articles found: #{@scraped_articles.count}"
-    Rails.logger.info "Date range of scraped articles:"
-    Rails.logger.info "Earliest scraped article: #{@scraped_articles.minimum(:published_at)}"
-    Rails.logger.info "Latest scraped article: #{@scraped_articles.maximum(:published_at)}"
+    # Paginate combined articles
+    @combined_articles = Kaminari.paginate_array(@combined_articles).page(params[:page]).per(20)
+  end
 
-    # Sample of articles
-    Rails.logger.info "Sample Articles:"
-    @articles.limit(5).each do |article|
-      Rails.logger.info "Article - Title: #{article.title}, Published: #{article.published_at}"
-    end
+  def show
+    @article = Article.includes(:ai_summary, :feed, :key_facts)
+                      .find_by(id: params[:id]) ||
+               ScrapedArticle.includes(:scraped_feed, :article) # Ensure :article is included for ScrapedArticle
 
-    # Sample of scraped articles
-    Rails.logger.info "Sample Scraped Articles:"
-    @scraped_articles.limit(5).each do |scraped_article|
-      Rails.logger.info "Scraped Article - Title: #{scraped_article.title}, Published: #{scraped_article.published_at}"
+    raise ActiveRecord::RecordNotFound if @article.nil?
+
+    # Debugging logs
+    Rails.logger.info "=== Debugging Article Show Controller ==="
+    Rails.logger.info "Article ID: #{@article.id}"
+    Rails.logger.info "Article Type: #{@article.class}"
+    Rails.logger.info "AI Summary Association Loaded?: #{@article.association(:ai_summary).loaded?}"
+    Rails.logger.info "AI Summary Object: #{@article.ai_summary.inspect}"
+    Rails.logger.info "AI Summary Content: #{@article.ai_summary&.content}"
+
+    # Assign AI Summary content to an instance variable for the view
+    @summary_content = @article.ai_summary&.content || "No AI summary available."
+
+    # If it's a ScrapedArticle, we need to fetch the associated Article's AI summary
+    if @article.is_a?(ScrapedArticle)
+      @summary_content = @article.article&.ai_summary&.content || "No AI summary available for associated article."
     end
   end
 end

@@ -1,72 +1,45 @@
-<h1>Tech News Aggregator</h1>
+<h1>Articles</h1>
 
-<!-- Filter Form -->
-<%= form_with url: articles_path, method: :get, local: true do |f| %>
-  <div style="margin-bottom: 20px;">
-    <div style="margin-bottom: 10px;">
-      <label for="start_date">Start Date:</label>
-      <%= date_field_tag :start_date, params[:start_date], class: "form-control" %>
-    </div>
-
-    <div style="margin-bottom: 10px;">
-      <label for="end_date">End Date:</label>
-      <%= date_field_tag :end_date, params[:end_date], class: "form-control" %>
-    </div>
-
-    <%= submit_tag "Filter", class: "btn btn-primary" %>
-
-    <% if params[:start_date].present? || params[:end_date].present? %>
-      <%= link_to "Clear Filters", articles_path, class: "btn btn-secondary" %>
-    <% end %>
+<!-- Date Range Filter Form -->
+<%= form_tag(articles_path, method: :get, class: "date-filter-form") do %>
+  <div>
+    <label for="start_date">Start Date:</label>
+    <%= date_field_tag :start_date, params[:start_date], class: "date-input" %>
+  </div>
+  <div>
+    <label for="end_date">End Date:</label>
+    <%= date_field_tag :end_date, params[:end_date], class: "date-input" %>
+  </div>
+  <div>
+    <%= submit_tag "Filter", class: "filter-button" %>
   </div>
 <% end %>
 
-<hr>
-
-<% if @articles.any? || @scraped_articles.any? %>
-  <p>Showing <%= @articles.count + (@scraped_articles&.count || 0) %> articles</p>
-
-  <% all_articles = (@articles.to_a + @scraped_articles.to_a).sort_by(&:published_at).reverse %>
-
-  <% all_articles.each do |article| %>
-    <div class="article">
-      <h2>
-        <a href="<%= article.url %>" target="_blank">
-          <%= article.title %>
-        </a>
-      </h2>
-      <p><strong>Published:</strong> <%= article.published_at.strftime("%B %d, %Y") %></p>
-
-      <% if article.is_a?(Article) %>
-        <!-- Regular Article -->
-        <p><strong>Feed:</strong> <%= article.feed&.name || "Unknown" %></p>
-
-        <% if article.ai_summary %>
-          <h3>AI Summary:</h3>
-          <p><%= article.ai_summary.content %></p>
-        <% else %>
-          <p><em>No AI Summary available.</em></p>
-        <% end %>
-
-        <% if article.key_facts.any? %>
-          <h3>Key Facts:</h3>
-          <ul>
-            <% article.key_facts.each do |fact| %>
-              <li><%= fact.content %></li>
-            <% end %>
-          </ul>
-        <% end %>
+<% @combined_articles.each do |article| %>
+  <div class="article-preview">
+    <h2><%= link_to article.title, article_path(article) %></h2>
+    <p>Source:
+      <% if article.is_a?(ScrapedArticle) %>
+        <%= article.scraped_feed.name %>
       <% else %>
-        <!-- Scraped Article -->
-        <p><strong>Feed:</strong> <%= article.scraped_feed&.name %> (Scraped)</p>
-        <div class="content">
-          <p><%= article.content %></p>
-        </div>
+        <%= article.feed.name %>
       <% end %>
-    </div>
+    </p>
+    <p>Published: <%= article.published_at.strftime("%B %d, %Y") %></p>
+
+    <!-- AI Summary Section -->
+    <% if article.is_a?(Article) && article.ai_summary.present? %>
+      <h3>AI Summary</h3>
+      <p><%= simple_format(article.ai_summary.content) %></p>
+    <% elsif article.is_a?(ScrapedArticle) && article.article&.ai_summary.present? %>
+      <h3>AI Summary</h3>
+      <p><%= simple_format(article.article.ai_summary.content) %></p>
+    <% else %>
+      <p>No AI Summary available</p>
+    <% end %>
+
     <hr>
-  <% end %>
-<% else %>
-  <p>No articles found for the selected date range.</p>
-  <p>Try adjusting your date filters or <%= link_to "view all articles", articles_path %>.</p>
+  </div>
 <% end %>
+
+<%= paginate @combined_articles %> <!-- Pagination controls -->
