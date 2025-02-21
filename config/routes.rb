@@ -6,6 +6,11 @@ Rails.application.routes.draw do
   # Articles route
   resources :articles, only: [:index]
 
+  # Scraped feeds and articles routes
+  resources :scraped_feeds do
+    resources :scraped_articles, only: [:index]
+  end
+
   # Root route
   root to: "pages#home"
 

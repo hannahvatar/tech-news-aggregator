@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_02_19_161212) do
+ActiveRecord::Schema[7.1].define(version: 2025_02_21_103423) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -72,6 +72,27 @@ ActiveRecord::Schema[7.1].define(version: 2025_02_19_161212) do
     t.jsonb "data", default: {}
   end
 
+  create_table "scraped_articles", force: :cascade do |t|
+    t.string "title"
+    t.string "url"
+    t.text "content"
+    t.datetime "published_at"
+    t.bigint "scraped_feed_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["scraped_feed_id"], name: "index_scraped_articles_on_scraped_feed_id"
+    t.index ["url"], name: "index_scraped_articles_on_url", unique: true
+  end
+
+  create_table "scraped_feeds", force: :cascade do |t|
+    t.string "name"
+    t.string "url"
+    t.string "feed_type"
+    t.datetime "last_scraped_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "tags", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -93,4 +114,5 @@ ActiveRecord::Schema[7.1].define(version: 2025_02_19_161212) do
   add_foreign_key "article_tags", "articles"
   add_foreign_key "article_tags", "tags"
   add_foreign_key "articles", "feeds"
+  add_foreign_key "scraped_articles", "scraped_feeds"
 end

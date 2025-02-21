@@ -1,7 +1,4 @@
-
 <h1>Tech News Aggregator</h1>
-
-
 
 <!-- Filter Form -->
 <%= form_with url: articles_path, method: :get, local: true do |f| %>
@@ -26,10 +23,12 @@
 
 <hr>
 
-<% if @articles.any? %>
-  <p>Showing <%= @articles.count %> articles</p>
+<% if @articles.any? || @scraped_articles.any? %>
+  <p>Showing <%= @articles.count + (@scraped_articles&.count || 0) %> articles</p>
 
-  <% @articles.each do |article| %>
+  <% all_articles = (@articles.to_a + @scraped_articles.to_a).sort_by(&:published_at).reverse %>
+
+  <% all_articles.each do |article| %>
     <div class="article">
       <h2>
         <a href="<%= article.url %>" target="_blank">
@@ -37,22 +36,32 @@
         </a>
       </h2>
       <p><strong>Published:</strong> <%= article.published_at.strftime("%B %d, %Y") %></p>
-      <p><strong>Feed:</strong> <%= article.feed&.name || "Unknown" %></p>
 
-      <% if article.ai_summary %>
-        <h3>AI Summary:</h3>
-        <p><%= article.ai_summary.content %></p>
+      <% if article.is_a?(Article) %>
+        <!-- Regular Article -->
+        <p><strong>Feed:</strong> <%= article.feed&.name || "Unknown" %></p>
+
+        <% if article.ai_summary %>
+          <h3>AI Summary:</h3>
+          <p><%= article.ai_summary.content %></p>
+        <% else %>
+          <p><em>No AI Summary available.</em></p>
+        <% end %>
+
+        <% if article.key_facts.any? %>
+          <h3>Key Facts:</h3>
+          <ul>
+            <% article.key_facts.each do |fact| %>
+              <li><%= fact.content %></li>
+            <% end %>
+          </ul>
+        <% end %>
       <% else %>
-        <p><em>No AI Summary available.</em></p>
-      <% end %>
-
-      <% if article.key_facts.any? %>
-        <h3>Key Facts:</h3>
-        <ul>
-          <% article.key_facts.each do |fact| %>
-            <li><%= fact.content %></li>
-          <% end %>
-        </ul>
+        <!-- Scraped Article -->
+        <p><strong>Feed:</strong> <%= article.scraped_feed&.name %> (Scraped)</p>
+        <div class="content">
+          <p><%= article.content %></p>
+        </div>
       <% end %>
     </div>
     <hr>
