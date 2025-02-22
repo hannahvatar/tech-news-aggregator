@@ -58,5 +58,6 @@ module TechNewsAggregator
 
     # Ensure proper handling of JSON in controllers
     config.action_controller.permit_all_parameters = false
+    config.active_job.queue_adapter = :sidekiq
   end
 end

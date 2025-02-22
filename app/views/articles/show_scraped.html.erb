@@ -1,0 +1,53 @@
+<div class="article-show-container">
+  <% if Rails.env.development? %>
+    <div style="background: #f5f5f5; padding: 10px; margin: 10px; border: 1px solid #ddd;">
+      <h3>Scraped Article Debug Info:</h3>
+      <ul>
+        <li>Article ID: <%= @article.id %></li>
+        <li>Article Type: <%= @article.class.name %></li>
+        <li>AI Summary Present: <%= @article.ai_summary.present? %></li>
+        <li>Scraped Feed ID: <%= @article.scraped_feed_id %></li>
+      </ul>
+
+      <% if @article.ai_summary.present? %>
+        <h4>AI Summary Debug Info:</h4>
+        <ul>
+          <li>AI Summary ID: <%= @article.ai_summary.id %></li>
+          <li>AI Summary Content: <%= @article.ai_summary.content.truncate(100) %></li>
+          <li>AI Summary Generated At: <%= @article.ai_summary.generated_at %></li>
+        </ul>
+      <% end %>
+    </div>
+  <% end %>
+
+  <h1><%= @article.title %></h1>
+
+  <div class="article-metadata">
+    <p>
+      Source: <%= @article.source_name %>
+      <% if @article.scraped_feed %>
+        (<%= link_to @article.scraped_feed.name, @article.scraped_feed.url, target: "_blank" %>)
+      <% end %>
+    </p>
+    <p>Published: <%= @article.published_at&.strftime("%B %d, %Y at %I:%M %p") %></p>
+    <p>Original URL: <%= link_to @article.url, @article.url, target: "_blank" %></p>
+  </div>
+
+  <% if @article.ai_summary.present? %>
+    <div class="ai-summary">
+      <h3>AI Summary</h3>
+      <p><%= simple_format(@article.ai_summary.content) %></p>
+      <small class="text-muted">
+        Generated: <%= @article.ai_summary.generated_at&.strftime("%B %d, %Y at %I:%M %p") %>
+      </small>
+    </div>
+  <% else %>
+    <div class="ai-summary-placeholder">
+      <p>No AI Summary available for this scraped article</p>
+      <%= button_to "Generate Summary",
+                    generate_summary_scraped_feed_scraped_article_path(@article.scraped_feed, @article),
+                    method: :post,
+                    class: "btn btn-sm btn-primary" %>
+    </div>
+  <% end %>
+</div>

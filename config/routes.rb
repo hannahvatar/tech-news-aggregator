@@ -17,7 +17,13 @@ Rails.application.routes.draw do
 
   # Scraped feeds and articles routes
   resources :scraped_feeds do
-    resources :scraped_articles, only: [:index]
+    resources :scraped_articles, only: [:index] do
+      # Add summary generation for scraped articles
+      member do
+        post 'generate_summary'
+        post 'regenerate_summary'
+      end
+    end
   end
 
   # Root route

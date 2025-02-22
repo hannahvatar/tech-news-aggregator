@@ -1,25 +1,47 @@
 <!-- app/views/articles/show.html.erb -->
 <div class="article-show-container">
-  <!-- Debug info section (kept as is) -->
-  <div style="background: #f5f5f5; padding: 10px; margin: 10px; border: 1px solid #ddd;">
-    <h3>Feed Debug Info:</h3>
-    <ul>
-      <li>Article ID: <%= @article.id %></li>
-      <li>Article Feed ID: <%= @article.feed_id %></li>
-      <li>Feed Present?: <%= @article.feed.present? %></li>
-      <% if @article.feed.present? %>
-        <li>Feed ID: <%= @article.feed.id %></li>
-        <li>Feed Name: <%= @article.feed.name.inspect %></li>
-        <li>Feed URL: <%= @article.feed.url %></li>
+  <!-- Debug info section -->
+  <% if Rails.env.development? %>
+    <div style="background: #f5f5f5; padding: 10px; margin: 10px; border: 1px solid #ddd;">
+      <h3>Article Debug Info:</h3>
+      <ul>
+        <li>Article ID: <%= @article.id %></li>
+        <li>Article Type: <%= @article.class.name %></li>
+        <li>AI Summary Present: <%= @article.ai_summary.present? %></li>
+        <% if @article.is_a?(Article) %>
+          <li>Feed ID: <%= @article.feed_id %></li>
+          <li>Feed Present?: <%= @article.feed.present? %></li>
+          <% if @article.feed.present? %>
+            <li>Feed ID: <%= @article.feed.id %></li>
+            <li>Feed Name: <%= @article.feed.name.inspect %></li>
+            <li>Feed URL: <%= @article.feed.url %></li>
+          <% end %>
+        <% elsif @article.is_a?(ScrapedArticle) %>
+          <li>Scraped Feed ID: <%= @article.scraped_feed_id %></li>
+          <li>Scraped Feed Present?: <%= @article.scraped_feed.present? %></li>
+          <% if @article.scraped_feed.present? %>
+            <li>Scraped Feed ID: <%= @article.scraped_feed.id %></li>
+            <li>Scraped Feed Name: <%= @article.scraped_feed.name.inspect %></li>
+            <li>Scraped Feed URL: <%= @article.scraped_feed.url %></li>
+          <% end %>
+        <% end %>
+      </ul>
+      <% if @article.ai_summary.present? %>
+        <h4>AI Summary Debug Info:</h4>
+        <ul>
+          <li>AI Summary ID: <%= @article.ai_summary.id %></li>
+          <li>AI Summary Content: <%= @article.ai_summary.content.truncate(100) %></li>
+          <li>AI Summary Generated At: <%= @article.ai_summary.generated_at %></li>
+        </ul>
       <% end %>
-    </ul>
-  </div>
+    </div>
+  <% end %>
 
   <h1><%= @article.title %></h1>
 
   <div class="article-metadata">
     <p>
-      Source: <%= @article.feed&.name || "No source available" %>
+      Source: <%= @article.is_a?(Article) ? (@article.feed&.name || "No source available") : (@article.scraped_feed&.name || "No source available") %>
     </p>
     <p>Published: <%= @article.published_at&.strftime("%B %d, %Y at %I:%M %p") %></p>
   </div>
@@ -33,24 +55,33 @@
       </small>
 
       <!-- Optional: Add a button to regenerate summary -->
-      <%= button_to "Regenerate Summary", regenerate_summary_article_path(@article), method: :post, class: "btn btn-sm btn-outline-secondary mt-2" if Rails.env.development? %>
+      <% if Rails.env.development? %>
+        <%= button_to "Regenerate Summary",
+                      @article.is_a?(Article) ? regenerate_summary_article_path(@article) : regenerate_summary_scraped_feed_scraped_article_path(@article.scraped_feed, @article),
+                      method: :post,
+                      class: "btn btn-sm btn-outline-secondary mt-2" %>
+      <% end %>
     </div>
   <% else %>
     <div class="ai-summary-placeholder">
       <p>No AI Summary available</p>
-      <%= button_to "Generate Summary", generate_summary_article_path(@article), method: :post, class: "btn btn-sm btn-primary" if Rails.env.development? %>
+      <% if Rails.env.development? %>
+        <%= button_to "Generate Summary",
+                      @article.is_a?(Article) ? generate_summary_article_path(@article) : generate_summary_scraped_feed_scraped_article_path(@article.scraped_feed, @article),
+                      method: :post,
+                      class: "btn btn-sm btn-primary" %>
+      <% end %>
     </div>
   <% end %>
 
-  <!-- Rest of the code remains the same -->
-  <% if @article.respond_to?(:content) && @article.content.present? %>
+  <% if @article.content.present? %>
     <div class="article-content">
       <h3>Full Content</h3>
       <%= simple_format(@article.content) %>
     </div>
   <% end %>
 
-  <% if @article.respond_to?(:key_facts) && @article.key_facts.present? %>
+  <% if @article.is_a?(Article) && @article.key_facts.present? %>
     <div class="key-facts">
       <h3>Key Facts</h3>
       <ul>

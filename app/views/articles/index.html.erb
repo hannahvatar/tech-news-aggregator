@@ -37,7 +37,9 @@
         <div class="article-preview card mb-3">
           <div class="card-body">
             <h2 class="card-title">
-              <%= link_to article.title, article_path(article), class: "article-title" %>
+              <%= link_to article.title,
+                  article.is_a?(Article) ? article_path(article) : "/articles/scraped/#{article.id}",
+                  class: "article-title" %>
             </h2>
 
             <div class="article-metadata">
@@ -50,19 +52,29 @@
               </span>
             </div>
 
-            <% if article.is_a?(Article) && article.ai_summary.present? %>
+            <% if article.ai_summary.present? %>
               <div class="ai-summary mt-3">
                 <h3 class="h5">AI Summary</h3>
                 <%= simple_format(truncate(article.ai_summary.content, length: 800)) %>
-              </div>
-            <% elsif article.is_a?(ScrapedArticle) && article.ai_summary.present? %>
-              <div class="ai-summary mt-3">
-                <h3 class="h5">AI Summary</h3>
-                <%= simple_format(truncate(article.ai_summary.content, length: 800)) %>
+                <div class="ai-summary-meta small text-muted">
+                  Summary generated:
+                  <%= article.ai_summary.generated_at&.strftime("%B %d, %Y at %I:%M %p") %>
+                </div>
               </div>
             <% else %>
               <div class="no-summary-alert text-muted small">
                 No AI summary available for this article.
+                <% if article.is_a?(Article) %>
+                  <%= button_to "Generate Summary",
+                      generate_summary_article_path(article),
+                      method: :post,
+                      class: "btn btn-sm btn-primary mt-2" %>
+                <% else %>
+                  <%= button_to "Generate Summary",
+                      generate_summary_scraped_feed_scraped_article_path(article.scraped_feed, article),
+                      method: :post,
+                      class: "btn btn-sm btn-primary mt-2" %>
+                <% end %>
               </div>
             <% end %>
 

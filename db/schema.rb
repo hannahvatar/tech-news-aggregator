@@ -10,20 +10,22 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_02_21_205728) do
+ActiveRecord::Schema[7.1].define(version: 2025_02_22_154802) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
 
   create_table "ai_summaries", force: :cascade do |t|
-    t.bigint "article_id", null: false
+    t.bigint "article_id"
     t.text "content"
     t.datetime "generated_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "scraped_article_id"
+    t.index ["article_id", "scraped_article_id"], name: "index_ai_summaries_on_article_id_and_scraped_article_id", unique: true
     t.index ["article_id"], name: "index_ai_summaries_on_article_id"
     t.index ["scraped_article_id"], name: "index_ai_summaries_on_scraped_article_id"
+    t.check_constraint "article_id IS NOT NULL OR scraped_article_id IS NOT NULL", name: "check_article_or_scraped_article_presence"
   end
 
   create_table "article_tags", force: :cascade do |t|
