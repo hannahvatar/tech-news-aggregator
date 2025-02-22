@@ -53,12 +53,12 @@
             <% if article.is_a?(Article) && article.ai_summary.present? %>
               <div class="ai-summary mt-3">
                 <h3 class="h5">AI Summary</h3>
-                <%= simple_format(truncate(article.ai_summary.content, length: 250)) %>
+                <%= simple_format(truncate(article.ai_summary.content, length: 800)) %>
               </div>
             <% elsif article.is_a?(ScrapedArticle) && article.ai_summary.present? %>
               <div class="ai-summary mt-3">
                 <h3 class="h5">AI Summary</h3>
-                <%= simple_format(truncate(article.ai_summary.content, length: 250)) %>
+                <%= simple_format(truncate(article.ai_summary.content, length: 800)) %>
               </div>
             <% else %>
               <div class="no-summary-alert text-muted small">
