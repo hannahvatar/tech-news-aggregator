@@ -36,11 +36,12 @@
       <% @combined_articles.each do |article| %>
         <div class="article-preview card mb-3">
           <div class="card-body">
-            <h2 class="card-title">
-              <%= link_to article.title,
-                  article.is_a?(Article) ? article_path(article) : "/articles/scraped/#{article.id}",
-                  class: "article-title" %>
-            </h2>
+<h2 class="card-title">
+  <%= link_to article.title,
+      article.url.presence || (article.is_a?(Article) ? article_path(article) : "/articles/scraped/#{article.id}"),
+      class: "article-title", target: "_blank", rel: "noopener" %>
+</h2>
+
 
             <div class="article-metadata">
               <span class="article-source badge bg-secondary">
