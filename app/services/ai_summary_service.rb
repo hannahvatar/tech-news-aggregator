@@ -56,7 +56,7 @@ class AiSummaryService
       if response.dig("choices", 0, "message", "content")
         summary = response["choices"][0]["message"]["content"].strip
 
-        # Additional validation
+        # Additional validation for summary length
         if summary.length < 50
           Rails.logger.warn "Generated summary too short for Article #{@article.id}"
           return "Unable to generate a meaningful summary"
@@ -91,14 +91,14 @@ class AiSummaryService
     # Remove HTML tags
     content = ActionView::Base.full_sanitizer.sanitize(content)
 
-    # Clean up the text
+    # Clean up the text (remove unwanted patterns)
     content = content.strip
                .gsub(/\s+/, ' ')
-               .gsub(/\[.*?\]/, '')
-               .gsub(/Read more at.*/, '')
+               .gsub(/\[.*?\]/, '')  # Remove bracketed content like [Read more]
+               .gsub(/Read more at.*/, '')  # Remove "Read more" text
                .gsub(/https?:\/\/\S+/, '')  # Remove URLs
 
-    # Truncate to prevent overwhelming the API
+    # Truncate to prevent overwhelming the API with excessive length
     truncated_content = content.truncate(4000, separator: ' ', omission: '...')
 
     # Log truncation info

@@ -15,16 +15,17 @@ class Article < ApplicationRecord
   scope :without_ai_summary, -> { left_joins(:ai_summary).where(ai_summaries: { id: nil }) }
   scope :with_ai_summary, -> { joins(:ai_summary) }
 
+  # Method to return source name (feed's name or default text)
   def source_name
     feed&.name || "No source available"
   end
 
-  # Optional method to check if AI summary exists
+  # Check if AI summary exists
   def ai_summary_generated?
     ai_summary.present?
   end
 
-  # Optional method to generate AI summary if not exists
+  # Method to generate AI summary if not exists
   def generate_ai_summary
     return ai_summary if ai_summary_generated?
 
