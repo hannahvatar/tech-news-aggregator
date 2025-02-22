@@ -10,6 +10,6 @@ class ScrapedArticle < ApplicationRecord
 
   # Add source_name method for consistency with Article model
   def source_name
-    scraped_feed&.name || 'Unknown Source'
+    scraped_feed&.name || "No source available"
   end
 end

@@ -3,10 +3,16 @@ Rails.application.routes.draw do
   # Existing health check route
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # Articles route with both regular and scraped articles
+  # Articles route with summary generation methods
   resources :articles, only: [:index, :show] do
-    # Add a custom route for scraped articles
+    # Existing scraped articles route
     get 'scraped/:id', to: 'articles#show_scraped', on: :collection, as: :scraped
+
+    # Summary generation routes (member routes apply to individual articles)
+    member do
+      post 'generate_summary'
+      post 'regenerate_summary'
+    end
   end
 
   # Scraped feeds and articles routes

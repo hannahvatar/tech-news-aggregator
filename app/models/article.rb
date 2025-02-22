@@ -11,12 +11,30 @@ class Article < ApplicationRecord
   validates :guid, presence: true, uniqueness: true
   validates :published_at, presence: true
 
-  def source_name
-    Rails.logger.debug "Checking source_name for article #{id}"
-    Rails.logger.debug "Feed ID: #{feed_id}"
-    Rails.logger.debug "Feed present?: #{feed.present?}"
-    Rails.logger.debug "Feed name: #{feed&.name}"
+  # Scopes for convenience
+  scope :without_ai_summary, -> { left_joins(:ai_summary).where(ai_summaries: { id: nil }) }
+  scope :with_ai_summary, -> { joins(:ai_summary) }
 
-    feed&.name.presence || "No feed name"
+  def source_name
+    feed&.name || "No source available"
+  end
+
+  # Optional method to check if AI summary exists
+  def ai_summary_generated?
+    ai_summary.present?
+  end
+
+  # Optional method to generate AI summary if not exists
+  def generate_ai_summary
+    return ai_summary if ai_summary_generated?
+
+    summary_service = AiSummaryService.new(self)
+    create_ai_summary(
+      content: summary_service.generate_summary,
+      generated_at: Time.current
+    )
+  rescue StandardError => e
+    Rails.logger.error "Failed to generate AI summary for Article #{id}: #{e.message}"
+    nil
   end
 end

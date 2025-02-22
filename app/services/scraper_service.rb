@@ -29,48 +29,35 @@ class ScraperService
   private
 
   def fetch_page(url)
+    puts "\nAttempting to fetch: #{url}"
     response = HTTParty.get(url)
-    Nokogiri::HTML(response.body)
-  rescue => e
-    Rails.logger.error "Error fetching #{url}: #{e.message}"
-    nil
-  end
+    puts "Response status: #{response.code}"
+    puts "Response body length: #{response.body.length} characters"
 
-  def scrape_smashing_magazine
-    doc = fetch_page(@feed.url)
-    return unless doc
+    doc = Nokogiri::HTML(response.body)
+    puts "Page title: #{doc.css('title').text}"
 
-    doc.css('article.article--post').each do |article|
-      # Extract title and URL
-      title = article.css('h2.article--post__title').text.strip
-      relative_url = article.css('h2.article--post__title a').attr('href')&.value
-      absolute_url = "https://www.smashingmagazine.com#{relative_url}"
-
-      # Get content
-      content = article.css('.article--post__teaser').text.strip
-
-      # Parse the published date from datetime attribute
-      datetime = article.css('time').attr('datetime')&.value
-      published_at = if datetime
-        # Convert YYYY-MM-DD format to DateTime
-        Date.parse(datetime).beginning_of_day
-      else
-        # Extract from URL as fallback (format: /YYYY/MM/...)
-        match = relative_url.match(%r{/(\d{4})/(\d{2})})
-        match ? Date.new(match[1].to_i, match[2].to_i, 1).beginning_of_day : Time.current
-      end
-
-      # Debug output
-      Rails.logger.info "Creating article: #{title}"
-      Rails.logger.info "Published at: #{published_at}"
-
-      create_article(
-        title: title,
-        url: absolute_url,
-        content: content,
-        published_at: published_at
-      )
+    # Debug output for each site's specific selectors
+    case @feed.name
+    when 'A List Apart'
+      puts "Found #{doc.css('div.grid-card-3').count} grid cards"
+      puts "Found #{doc.css('h3.article-title').count} article titles"
+    when 'UsabilityGeek'
+      puts "Found #{doc.css('article.blog-item').count} blog items"
+      puts "Found #{doc.css('h2.blog-title').count} blog titles"
+    when 'UX Matters'
+      puts "Found #{doc.css('div.entry').count} entries"
+      puts "Found #{doc.css('h3 a').count} article links"
+    when 'Prototypr'
+      puts "Found #{doc.css('article.post-preview').count} post previews"
+      puts "Found #{doc.css('h2.title').count} titles"
     end
+
+    doc
+  rescue => e
+    puts "Error fetching #{url}: #{e.message}"
+    puts e.backtrace.first(5)
+    nil
   end
 
   def create_article(data)
@@ -92,18 +79,36 @@ def scrape_alistapart
   doc = fetch_page(@feed.url)
   return unless doc
 
-  doc.css('div.grid-card-3').each do |article|
-    title = article.css('h3').text.strip
-    relative_url = article.css('a').first.attr('href')
-    url = relative_url.start_with?('http') ? relative_url : "https://alistapart.com#{relative_url}"
-    content = article.css('p.article-summary').text.strip
-    date = article.css('time').attr('datetime')&.value
+  articles = doc.css('article.type-article')
+  puts "\nFound #{articles.count} total articles"
+
+  articles.each do |article|
+    # Get article info
+    title = article.css('.featured-content__title a, h4.home-post-title a, h2.entry-title a').text.strip
+    url = article.css('.featured-content__title a, h4.home-post-title a, h2.entry-title a').attr('href')&.value
+
+    # Try various content selectors
+    content = article.css('.featured-content__excerpt, .post-excerpt, .entry-summary p').first&.text&.strip
+    content ||= article.css('p').reject { |p| p.text.length < 50 }.first&.text&.strip
+
+    # Get date
+    date_text = article.css('time').attr('datetime')&.value
+    if date_text.blank? && url =~ /\/(\d{4})\/(\d{2})\//
+      date_text = "#{$1}-#{$2}-01"
+    end
+
+    next unless title.present? && url.present?
+
+    # Ensure URL is absolute
+    unless url.start_with?('http')
+      url = "https://alistapart.com#{url}"
+    end
 
     create_article(
       title: title,
       url: url,
       content: content,
-      published_at: date ? Date.parse(date) : nil
+      published_at: date_text.present? ? Date.parse(date_text) : Time.current
     )
   end
 end
@@ -113,39 +118,86 @@ def scrape_usabilitygeek
   doc = fetch_page(@feed.url)
   return unless doc
 
-  doc.css('article.blog-item').each do |article|
-    title = article.css('h2.blog-title').text.strip
-    url = article.css('h2.blog-title a').attr('href')&.value
-    content = article.css('div.blog-excerpt').text.strip
-    date = article.css('.blog-date').text.strip
+  articles = doc.css('article.elementor-post')
+  puts "\nFound #{articles.count} UsabilityGeek articles"
+
+  articles.each do |article|
+    title = article.css('h3.elementor-post__title').text.strip
+    url = article.css('a.elementor-post__thumbnail__link').attr('href')&.value
+    content = article.css('.elementor-post__excerpt p').text.strip
+    date_text = article.css('.elementor-post-date').text.strip
+
+    next unless title.present? && url.present?
 
     create_article(
       title: title,
       url: url,
       content: content,
-      published_at: date.present? ? Date.parse(date) : nil
+      published_at: date_text.present? ? Date.parse(date_text) : Time.current
     )
   end
 end
 
 def scrape_uxmatters
-  doc = fetch_page(@feed.url)
+  # First try the main articles page
+  doc = fetch_page("https://www.uxmatters.com/mt/archives/")
   return unless doc
 
-  doc.css('div.entry').each do |article|
-    title = article.css('h3 a').text.strip
-    relative_url = article.css('h3 a').attr('href')&.value
+  puts "\nExamining page structure:"
+  puts doc.css('td.title a').map { |a| "#{a.text}: #{a['href']}" }
+
+  articles = doc.css('td.title')
+  puts "\nFound #{articles.count} articles"
+
+  articles.each do |article|
+    title = article.css('a').text.strip
+    relative_url = article.css('a').attr('href')&.value
     url = relative_url.start_with?('http') ? relative_url : "https://www.uxmatters.com#{relative_url}"
-    content = article.css('p').first&.text&.strip
-    date = article.css('.date').text.strip
+
+    # Get the date from the sibling td with class date
+    date_text = article.parent.css('td.date').text.strip
+
+    puts "\nFound article:"
+    puts "Title: #{title}"
+    puts "URL: #{url}"
+    puts "Date: #{date_text}"
+
+    next unless title.present? && url.present?
 
     create_article(
       title: title,
       url: url,
-      content: content,
-      published_at: date.present? ? Date.parse(date) : nil
+      content: get_article_content(url),
+      published_at: date_text.present? ? Date.parse(date_text) : Time.current
     )
   end
+end
+
+def get_article_content(url)
+  doc = fetch_page(url)
+  return nil unless doc
+  doc.css('.article-content p, .entry-content p').first&.text&.strip
+end
+
+def fetch_page(url)
+  puts "\nFetching: #{url}"
+  headers = {
+    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language' => 'en-US,en;q=0.5',
+    'Cache-Control' => 'no-cache',
+    'Pragma': 'no-cache'
+  }
+
+  response = HTTParty.get(url, headers: headers)
+  return nil unless response.code == 200
+
+  doc = Nokogiri::HTML(response.body)
+  puts "Title: #{doc.css('title').text}"
+  doc
+rescue => e
+  puts "Error fetching #{url}: #{e.message}"
+  nil
 end
 
 

@@ -1,31 +1,34 @@
+# app/jobs/generate_ai_summary_job.rb
 class GenerateAiSummaryJob < ApplicationJob
   queue_as :default
 
   def perform(article_id)
+    # Find the article
     article = Article.find(article_id)
 
-    # Log existing AI summary
-    Rails.logger.info "Checking existing AI summary for Article #{article_id}"
-    Rails.logger.info "Existing AI Summary: #{article.ai_summary.inspect}"
-
-    # Check if AI summary already exists
-    return if article.ai_summary.present?
+    # Log the start of summary generation
+    Rails.logger.info "Generating AI summary for Article #{article_id}: #{article.title}"
 
     # Use the AiSummaryService to generate summary
     summary_service = AiSummaryService.new(article)
     summary_text = summary_service.generate_summary
 
-    # Create AI Summary
-    ai_summary = AiSummary.create!(
-      article: article,
-      content: summary_text
+    # Create or update the AI summary
+    # This will overwrite any existing summary
+    article.ai_summary.destroy if article.ai_summary.present?
+
+    article.create_ai_summary!(
+      content: summary_text,
+      generated_at: Time.current
     )
 
-    # Log created summary
-    Rails.logger.info "Created AI Summary for Article #{article_id}"
-    Rails.logger.info "AI Summary Content: #{ai_summary.content}"
+    # Log successful summary generation
+    Rails.logger.info "Successfully generated AI summary for Article #{article_id}"
+    Rails.logger.info "Summary: #{summary_text[0..200]}..."
+
   rescue StandardError => e
-    Rails.logger.error("Failed to generate AI summary for Article #{article_id}: #{e.message}")
-    Rails.logger.error(e.backtrace.join("\n"))
+    # Detailed error logging
+    Rails.logger.error "Failed to generate AI summary for Article #{article_id}: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
   end
 end

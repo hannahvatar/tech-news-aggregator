@@ -1,6 +1,6 @@
 <!-- app/views/articles/show.html.erb -->
 <div class="article-show-container">
-  <!-- Debug info section -->
+  <!-- Debug info section (kept as is) -->
   <div style="background: #f5f5f5; padding: 10px; margin: 10px; border: 1px solid #ddd;">
     <h3>Feed Debug Info:</h3>
     <ul>
@@ -24,15 +24,25 @@
     <p>Published: <%= @article.published_at&.strftime("%B %d, %Y at %I:%M %p") %></p>
   </div>
 
-  <% if @article.respond_to?(:ai_summary) && @article.ai_summary.present? %>
+  <% if @article.ai_summary.present? %>
     <div class="ai-summary">
       <h3>AI Summary</h3>
       <p><%= simple_format(@article.ai_summary.content) %></p>
+      <small class="text-muted">
+        Generated: <%= @article.ai_summary.generated_at&.strftime("%B %d, %Y at %I:%M %p") %>
+      </small>
+
+      <!-- Optional: Add a button to regenerate summary -->
+      <%= button_to "Regenerate Summary", regenerate_summary_article_path(@article), method: :post, class: "btn btn-sm btn-outline-secondary mt-2" if Rails.env.development? %>
     </div>
   <% else %>
-    <p>No AI Summary available</p>
+    <div class="ai-summary-placeholder">
+      <p>No AI Summary available</p>
+      <%= button_to "Generate Summary", generate_summary_article_path(@article), method: :post, class: "btn btn-sm btn-primary" if Rails.env.development? %>
+    </div>
   <% end %>
 
+  <!-- Rest of the code remains the same -->
   <% if @article.respond_to?(:content) && @article.content.present? %>
     <div class="article-content">
       <h3>Full Content</h3>

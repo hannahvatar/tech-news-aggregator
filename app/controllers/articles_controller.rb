@@ -1,5 +1,5 @@
+# app/controllers/articles_controller.rb
 class ArticlesController < ApplicationController
-  # GET /articles
   def index
     begin
       # Log start of method
@@ -9,8 +9,8 @@ class ArticlesController < ApplicationController
       @articles = fetch_articles
       @scraped_articles = fetch_scraped_articles
 
-      # Log article counts
-      log_article_counts
+      # Log article counts and details about AI summaries
+      log_article_counts_and_summaries
 
       # Combine and paginate articles
       @combined_articles = combine_articles
@@ -33,21 +33,35 @@ class ArticlesController < ApplicationController
     end
   end
 
-  # GET /articles/:id
- # app/controllers/articles_controller.rb
-# app/controllers/articles_controller.rb
-def show
-  @article = Article.includes(:feed, :ai_summary, :key_facts, :tags).find_by(id: params[:id]) ||
-             ScrapedArticle.includes(:scraped_feed, :ai_summary).find_by(id: params[:id])
+  def show
+    @article = Article.includes(:feed, :ai_summary, :key_facts, :tags).find_by(id: params[:id]) ||
+               ScrapedArticle.includes(:scraped_feed, :ai_summary).find_by(id: params[:id])
 
-  if @article
-    Rails.logger.debug "Article found: #{@article.id}"
-    Rails.logger.debug "Article class: #{@article.class}"
-    Rails.logger.debug "Feed info: #{@article.feed.inspect}" if @article.respond_to?(:feed)
+    if @article
+      Rails.logger.debug "Article found: #{@article.id}"
+      Rails.logger.debug "Article class: #{@article.class}"
+      Rails.logger.debug "Feed info: #{@article.feed.inspect}" if @article.respond_to?(:feed)
+    else
+      flash[:alert] = "Article not found"
+      redirect_to articles_path
+    end
   end
-end
 
   private
+
+  def log_article_counts_and_summaries
+    Rails.logger.info "Regular Articles Count: #{@articles.count}"
+    Rails.logger.info "Scraped Articles Count: #{@scraped_articles.count}"
+
+    # Log AI summary details for debugging
+    @articles.each do |article|
+      Rails.logger.info "Article #{article.id} AI Summary: #{article.ai_summary.present?}"
+    end
+
+    @scraped_articles.each do |article|
+      Rails.logger.info "Scraped Article #{article.id} AI Summary: #{article.ai_summary.present?}"
+    end
+  end
 
   def fetch_articles
     # Default to a wide date range if no params are provided
@@ -57,7 +71,9 @@ end
     # Ensure correct order of dates
     start_date, end_date = end_date, start_date if start_date > end_date
 
+    # Eager load all necessary associations
     Article.includes(:feed, :ai_summary, :key_facts)
+           .references(:ai_summary)  # This ensures AI summaries are loaded
            .where(published_at: start_date.beginning_of_day..end_date.end_of_day)
            .order(published_at: :desc)
   rescue => e
@@ -73,17 +89,14 @@ end
     # Ensure correct order of dates
     start_date, end_date = end_date, start_date if start_date > end_date
 
+    # Eager load all necessary associations
     ScrapedArticle.includes(:scraped_feed, :ai_summary)
+                  .references(:ai_summary)  # This ensures AI summaries are loaded
                   .where(published_at: start_date.beginning_of_day..end_date.end_of_day)
                   .order(published_at: :desc)
   rescue => e
     Rails.logger.error "Error fetching scraped articles: #{e.message}"
     ScrapedArticle.none
-  end
-
-  def log_article_counts
-    Rails.logger.info "Regular Articles Count: #{@articles.count}"
-    Rails.logger.info "Scraped Articles Count: #{@scraped_articles.count}"
   end
 
   def combine_articles
