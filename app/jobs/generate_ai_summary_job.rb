@@ -1,69 +1,67 @@
 class GenerateAiSummaryJob < ApplicationJob
   queue_as :default
-  sidekiq_options retry: 3  # Add retry mechanism for Sidekiq
+  sidekiq_options retry: 3, dead: false  # Add dead job handling
 
   def perform(article_id, article_type)
-    # Extensive logging
-    Rails.logger.info "Starting GenerateAiSummaryJob for #{article_type} with ID: #{article_id}"
+    Rails.logger.tagged("GenerateAiSummaryJob", article_type, article_id) do
+      Rails.logger.info "Starting job"
 
-    # Find the article with more robust error handling
-    article = article_type.constantize.find_by(id: article_id)
-
-    if article.nil?
-      Rails.logger.error "Article not found: #{article_type} with ID #{article_id}"
-      return
-    end
-
-    # Log article details
-    Rails.logger.info "Article found: #{article.title}"
-    Rails.logger.info "Article content length: #{article.content&.length || 'N/A'}"
-
-    # Check for content
-    if article.content.blank?
-      Rails.logger.error "No content available for article: #{article_type} #{article_id}"
-      return
-    end
-
-    # Initialize summary service
-    summary_service = AiSummaryService.new(article)
-
-    # Generate summary with additional error handling
-    begin
-      summary_text = summary_service.generate_summary
-
-      # Validate summary
-      if summary_text.blank?
-        Rails.logger.error "Generated summary is blank for #{article_type} #{article_id}"
+      article_class = article_type.safe_constantize
+      unless article_class && article_class < ApplicationRecord
+        Rails.logger.error "Invalid article type: #{article_type}"
         return
       end
 
-      # Begin transaction to ensure atomic operation
-      ActiveRecord::Base.transaction do
-        # Destroy existing summary
-        article.ai_summary&.destroy
-
-        # Create new summary
-        new_summary = AiSummary.create!(
-          # Dynamically set the correct association based on article type
-          article_type.underscore.to_sym => article,
-          content: summary_text,
-          generated_at: Time.current
-        )
-
-        Rails.logger.info "Successfully generated AI summary for #{article_type} #{article_id}"
-        Rails.logger.info "Summary length: #{summary_text.length}"
-        Rails.logger.info "Summary ID: #{new_summary.id}"
+      article = article_class.find_by(id: article_id)
+      unless article
+        Rails.logger.error "Article not found"
+        return
       end
-    rescue StandardError => e
-      Rails.logger.error "Comprehensive error in summary generation for #{article_type} #{article_id}:"
-      Rails.logger.error "Error Class: #{e.class.name}"
-      Rails.logger.error "Error Message: #{e.message}"
-      Rails.logger.error "Backtrace:\n#{e.backtrace.join("\n")}"
 
-      # Optional: Additional error tracking or notification
-      # Rollbar.error(e, article_id: article_id, article_type: article_type) if defined?(Rollbar)
+      Rails.logger.info "Processing article: #{article.title}"
+      Rails.logger.info "Content length: #{article.content&.length || 'N/A'}"
 
-      raise # Re-raise to ensure job failure is recorded
+      if article.content.blank?
+        Rails.logger.error "No content available"
+        return
+      end
+
+      generate_and_save_summary(article)
     end
+  end
+
+  private
+
+  def generate_and_save_summary(article)
+    summary_service = AiSummaryService.new(article)
+    summary_text = summary_service.generate_summary
+
+    if summary_text.blank?
+      Rails.logger.error "Generated summary is blank"
+      return
+    end
+
+    ActiveRecord::Base.transaction do
+      article.ai_summary&.destroy
+      new_summary = article.create_ai_summary!(
+        content: summary_text,
+        generated_at: Time.current
+      )
+
+      Rails.logger.info "Summary generated successfully"
+      Rails.logger.info "Summary length: #{summary_text.length}"
+      Rails.logger.info "Summary ID: #{new_summary.id}"
+    end
+  rescue StandardError => e
+    log_error(e)
+    raise
+  end
+
+  def log_error(error)
+    Rails.logger.error "Error in summary generation:"
+    Rails.logger.error "Class: #{error.class.name}"
+    Rails.logger.error "Message: #{error.message}"
+    Rails.logger.error "Backtrace:\n#{error.backtrace.join("\n")}"
+    Rollbar.error(error) if defined?(Rollbar)
   end
 end

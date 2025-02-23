@@ -1,4 +1,3 @@
-# app/services/ai_summary_service.rb
 class AiSummaryService
   def initialize(article)
     @article = article
@@ -6,14 +5,17 @@ class AiSummaryService
     # Initialize OpenAI client
     begin
       api_key = Rails.application.credentials.dig(:openai, :api_key)
-      raise "OpenAI API key not found" if api_key.blank?
+      if api_key.blank?
+        Rails.logger.error "OpenAI API key not found"
+        raise "OpenAI API key not found"
+      end
 
       @client = OpenAI::Client.new(
         access_token: api_key,
         request_timeout: 30
       )
     rescue => e
-      Rails.logger.error "Error initializing OpenAI client: #{e.message}"
+      Rails.logger.error "Error initializing OpenAI client for Article #{@article.id}: #{e.message}"
       raise
     end
   end
@@ -24,12 +26,12 @@ class AiSummaryService
 
     # Validate content
     if content.blank?
-      Rails.logger.warn "No content available for summary generation for Article #{@article.id}"
+      Rails.logger.warn "No content available to summarize for Article #{@article.id}"
       return "No content available for summary"
     end
 
     # Log content details for debugging
-    Rails.logger.info "Generating summary for article #{@article.id}"
+    Rails.logger.info "Generating summary for Article #{@article.id}"
     Rails.logger.info "Prepared content length: #{content.length}"
 
     # Make OpenAI API call
@@ -53,22 +55,20 @@ class AiSummaryService
       )
 
       # Extract and validate summary
-      if response.dig("choices", 0, "message", "content")
+      if response.dig("choices", 0, "message", "content").present?
         summary = response["choices"][0]["message"]["content"].strip
 
         # Additional validation for summary length
         if summary.length < 50
-          Rails.logger.warn "Generated summary too short for Article #{@article.id}"
+          Rails.logger.warn "Generated summary too short for Article #{@article.id} (Summary length: #{summary.length})"
           return "Unable to generate a meaningful summary"
         end
 
-        Rails.logger.info "Generated summary for Article #{@article.id}"
-        Rails.logger.info "Summary length: #{summary.length}"
-
+        Rails.logger.info "Generated summary for Article #{@article.id} (Summary length: #{summary.length})"
         summary
       else
-        Rails.logger.error "Invalid response format for Article #{@article.id}"
-        "Unable to generate summary"
+        Rails.logger.error "Invalid response format or empty summary for Article #{@article.id}"
+        return "Unable to generate summary"
       end
     rescue OpenAI::Error => e
       Rails.logger.error "OpenAI API error for Article #{@article.id}: #{e.message}"
